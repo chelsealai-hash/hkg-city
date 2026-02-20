@@ -19,8 +19,7 @@ import { CategoryCard } from '@/components/cards/CategoryCard';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { AnnouncementBanner } from '@/components/admin/AnnouncementBanner';
 import { categories } from '@/data/categories';
-import { listings as staticListings } from '@/data/listings';
-import { useTrafficStatsStore } from '@/stores/firebaseStore';
+import { useTrafficStatsStore, useCMSStore } from '@/stores/firebaseStore';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -75,6 +74,7 @@ const sampleAnnouncements = [
 export function HomePage() {
   const { t } = useTranslation();
   const { incrementPageView } = useTrafficStatsStore();
+  const { listings, fetchListings } = useCMSStore();
   const [listingsCount, setListingsCount] = useState(0);
   
   const heroRef = useRef<HTMLDivElement>(null);
@@ -82,15 +82,16 @@ export function HomePage() {
   const categoriesRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
 
-  // Track page view
+  // Track page view and fetch listings
   useEffect(() => {
     incrementPageView();
-  }, [incrementPageView]);
+    fetchListings();
+  }, [incrementPageView, fetchListings]);
 
-  // Update listings count - use static data
+  // Update listings count from Firebase
   useEffect(() => {
-    setListingsCount(staticListings.length);
-  }, []);
+    setListingsCount(listings.length);
+  }, [listings]);
 
   // GSAP Animations
   useEffect(() => {
