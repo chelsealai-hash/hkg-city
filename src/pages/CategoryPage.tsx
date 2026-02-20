@@ -10,8 +10,7 @@ import { RegionFilter } from '@/components/filters/RegionFilter';
 import { SortDropdown } from '@/components/filters/SortDropdown';
 import { FilterDropdown } from '@/components/filters/FilterDropdown';
 import { categories, regions } from '@/data/categories';
-import { listings as staticListings } from '@/data/listings';
-import { useFilterStore } from '@/stores/firebaseStore';
+import { useFilterStore, useCMSStore } from '@/stores/firebaseStore';
 import type { Announcement } from '@/types';
 
 // Sample announcements for demo
@@ -60,22 +59,31 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
   const slug = propSlug || paramsSlug;
   const { t, i18n } = useTranslation();
   const { region, subRegion, filters, sortBy, clearFilters } = useFilterStore();
-  const [isLoading] = useState(false);
+  const { listings: firebaseListings, fetchListings } = useCMSStore();
+  const [isLoading, setIsLoading] = useState(true);
 
   const currentLang = i18n.language;
 
-  // Static data loaded directly, no Firebase fetch needed
+  // Fetch listings from Firebase on mount
+  useEffect(() => {
+    const loadListings = async () => {
+      setIsLoading(true);
+      await fetchListings();
+      setIsLoading(false);
+    };
+    loadListings();
+  }, [fetchListings]);
 
   // Get category data
   const category = useMemo(() => {
     return categories.find(c => c.slug === slug);
   }, [slug]);
 
-  // Get listings for this category - use static data (Firebase integration temporarily disabled)
+  // Get listings for this category from Firebase
   const listings = useMemo(() => {
     if (!category) return [];
-    return staticListings.filter(l => l.categoryId === category.id && l.isActive);
-  }, [category]);
+    return firebaseListings.filter(l => l.categoryId === category.id && l.isActive);
+  }, [category, firebaseListings]);
 
   // Filter and sort listings
   const filteredListings = useMemo(() => {
