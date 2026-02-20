@@ -35,13 +35,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore, useCMSStore } from '@/stores/firebaseStore';
 import { categories } from '@/data/categories';
+import { listings as staticListings } from '@/data/listings';
 import type { Listing } from '@/types';
 
 export function AdminListingsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const { listings, fetchListings, addListing, updateListing, deleteListing, isLoading } = useCMSStore();
+  const { listings: firebaseListings, fetchListings, addListing, updateListing, deleteListing, isLoading } = useCMSStore();
+  
+  // Use Firebase data if available, fallback to static data
+  const listings = firebaseListings.length > 0 ? firebaseListings : staticListings;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
