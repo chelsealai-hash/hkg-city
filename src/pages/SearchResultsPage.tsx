@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Search, X } from 'lucide-react';
@@ -8,8 +8,7 @@ import { ListingCard } from '@/components/cards/ListingCard';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { categories } from '@/data/categories';
-import { listings as staticListings } from '@/data/listings';
-import { useSearchStore } from '@/stores/firebaseStore';
+import { useSearchStore, useCMSStore } from '@/stores/firebaseStore';
 import { Train, Hotel, Hospital, Stethoscope, UtensilsCrossed, Palette, Wrench, MapPin } from 'lucide-react';
 
 const categoryIcons = {
@@ -25,10 +24,14 @@ const categoryIcons = {
 export function SearchResultsPage() {
   const { t, i18n } = useTranslation();
   const { query, results, setQuery, setResults, clearSearch } = useSearchStore();
+  const { listings, fetchListings } = useCMSStore();
 
   const currentLang = i18n.language;
 
-  // Static data loaded directly, no Firebase fetch needed
+  // Fetch listings from Firebase on mount
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
 
   // Search categories
   const categoryResults = useMemo(() => {
@@ -42,12 +45,12 @@ export function SearchResultsPage() {
     });
   }, [query, currentLang]);
 
-  // Search listings from static data
+  // Search listings from Firebase
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       const lowerQuery = query.toLowerCase();
-      const newResults = staticListings.filter(listing => {
+      const newResults = listings.filter(listing => {
         const name = listing.name[currentLang as keyof typeof listing.name] || listing.name.en;
         const description = listing.description?.[currentLang as keyof typeof listing.description] || listing.description?.en;
         return name.toLowerCase().includes(lowerQuery) || 
