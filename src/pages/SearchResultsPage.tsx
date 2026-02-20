@@ -8,6 +8,7 @@ import { ListingCard } from '@/components/cards/ListingCard';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { categories } from '@/data/categories';
+import { listings as staticListings } from '@/data/listings';
 import { useSearchStore, useCMSStore } from '@/stores/firebaseStore';
 import { Train, Hotel, Hospital, Stethoscope, UtensilsCrossed, Palette, Wrench, MapPin } from 'lucide-react';
 
@@ -45,12 +46,13 @@ export function SearchResultsPage() {
     });
   }, [query, currentLang]);
 
-  // Search listings from Firebase
+  // Search listings from Firebase (or static data as fallback)
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       const lowerQuery = query.toLowerCase();
-      const newResults = listings.filter(listing => {
+      const sourceListings = listings.length > 0 ? listings : staticListings;
+      const newResults = sourceListings.filter(listing => {
         const name = listing.name[currentLang as keyof typeof listing.name] || listing.name.en;
         const description = listing.description?.[currentLang as keyof typeof listing.description] || listing.description?.en;
         return name.toLowerCase().includes(lowerQuery) || 
