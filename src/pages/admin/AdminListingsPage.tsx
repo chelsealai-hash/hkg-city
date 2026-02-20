@@ -33,15 +33,19 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuthStore, useCMSStore } from '@/stores/firebaseStore';
+import { useAuthStore } from '@/stores/firebaseStore';
 import { categories } from '@/data/categories';
+import { listings as staticListings } from '@/data/listings';
 import type { Listing } from '@/types';
 
 export function AdminListingsPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const { listings, fetchListings, addListing, updateListing, deleteListing, isLoading } = useCMSStore();
+  
+  // Use static data instead of Firebase
+  const [listings, setListings] = useState<Listing[]>(staticListings);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -60,10 +64,7 @@ export function AdminListingsPage() {
     address: ''
   });
 
-  // Fetch listings on mount
-  useEffect(() => {
-    fetchListings();
-  }, [fetchListings]);
+  // Static data loaded, no fetch needed
 
   // Protect route
   if (!isAuthenticated) {
@@ -88,15 +89,18 @@ export function AdminListingsPage() {
 
   const confirmDelete = async () => {
     if (listingToDelete) {
-      await deleteListing(listingToDelete);
+      // Remove from local state (Note: changes won't persist after page refresh)
+      setListings(prev => prev.filter(l => l.id !== listingToDelete));
       setDeleteDialogOpen(false);
       setListingToDelete(null);
+      alert('Listing deleted (changes are temporary - will reset on page refresh)');
     }
   };
 
   const handleAdd = async () => {
     if (newListing.name && newListing.url && newListing.categoryId) {
-      const listingData = {
+      const listingData: Listing = {
+        id: `custom-${Date.now()}`,
         categoryId: newListing.categoryId,
         name: { 
           en: newListing.name, 
@@ -134,9 +138,11 @@ export function AdminListingsPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      await addListing(listingData as any);
+      // Add to local state (Note: changes won't persist after page refresh)
+      setListings(prev => [...prev, listingData]);
       setAddDialogOpen(false);
       setNewListing({ name: '', url: '', categoryId: '', description: '', region: 'hongkong-island', phone: '', address: '' });
+      alert('Listing added (changes are temporary - will reset on page refresh)');
     }
   };
 
@@ -147,14 +153,17 @@ export function AdminListingsPage() {
 
   const handleSaveEdit = async () => {
     if (editingListing) {
-      await updateListing(editingListing.id, editingListing);
+      // Update local state (Note: changes won't persist after page refresh)
+      setListings(prev => prev.map(l => l.id === editingListing.id ? editingListing : l));
       setEditDialogOpen(false);
       setEditingListing(null);
+      alert('Listing updated (changes are temporary - will reset on page refresh)');
     }
   };
 
   const handleToggleActive = async (listing: Listing) => {
-    await updateListing(listing.id, { isActive: !listing.isActive });
+    // Update local state (Note: changes won't persist after page refresh)
+    setListings(prev => prev.map(l => l.id === listing.id ? { ...l, isActive: !l.isActive } : l));
   };
 
   return (
