@@ -1,36 +1,33 @@
 // Firebase Configuration
-// Uses environment variables from Vercel
+// Uses hardcoded config for production
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
-import { getAnalytics, type Analytics } from 'firebase/analytics';
 
-// Firebase config from environment variables
+// Firebase config - hardcoded for reliability
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+  apiKey: "AIzaSyARZup-x_qfJZ7ZfL3TyKdzyXVOAE4G57U",
+  authDomain: "hkg-city.firebaseapp.com",
+  projectId: "hkg-city",
+  storageBucket: "hkg-city.firebasestorage.app",
+  messagingSenderId: "484561432661",
+  appId: "1:484561432661:web:baf33788cb441e733d64dc"
 };
 
 // Initialize Firebase
 let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
 let auth: Auth | undefined;
-let analytics: Analytics | undefined;
 
 try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
   auth = getAuth(app);
-  analytics = getAnalytics(app);
   console.log('Firebase initialized successfully');
 } catch (error) {
   console.error('Firebase initialization error:', error);
 }
 
-export { app, db, auth, analytics };
+export { app, db, auth };
 export default app;
