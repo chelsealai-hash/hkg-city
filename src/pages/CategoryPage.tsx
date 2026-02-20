@@ -10,6 +10,7 @@ import { RegionFilter } from '@/components/filters/RegionFilter';
 import { SortDropdown } from '@/components/filters/SortDropdown';
 import { FilterDropdown } from '@/components/filters/FilterDropdown';
 import { categories, regions } from '@/data/categories';
+import { listings as staticListings } from '@/data/listings';
 import { useFilterStore, useCMSStore } from '@/stores/firebaseStore';
 import type { Announcement } from '@/types';
 
@@ -79,10 +80,11 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
     return categories.find(c => c.slug === slug);
   }, [slug]);
 
-  // Get listings for this category from Firebase
+  // Get listings for this category - use Firebase data if available, fallback to static
   const listings = useMemo(() => {
     if (!category) return [];
-    return firebaseListings.filter(l => l.categoryId === category.id && l.isActive);
+    const sourceListings = firebaseListings.length > 0 ? firebaseListings : staticListings;
+    return sourceListings.filter(l => l.categoryId === category.id && l.isActive);
   }, [category, firebaseListings]);
 
   // Filter and sort listings
