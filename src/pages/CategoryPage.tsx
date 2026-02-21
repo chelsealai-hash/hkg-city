@@ -10,11 +10,10 @@ import { RegionFilter } from '@/components/filters/RegionFilter';
 import { SortDropdown } from '@/components/filters/SortDropdown';
 import { FilterDropdown } from '@/components/filters/FilterDropdown';
 import { categories, regions } from '@/data/categories';
-import { listings as staticListings } from '@/data/listings';
-import { useFilterStore, useCMSStore } from '@/stores/firebaseStore';
+import { getAllListings } from '@/data/listings';
+import { useFilterStore } from '@/stores/firebaseStore';
 import type { Announcement } from '@/types';
 
-// Sample announcements for demo
 const sampleAnnouncements: Announcement[] = [
   {
     id: 'cat-1',
@@ -60,63 +59,55 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
   const slug = propSlug || paramsSlug;
   const { t, i18n } = useTranslation();
   const { region, subRegion, filters, sortBy, clearFilters } = useFilterStore();
-  const { listings: firebaseListings, fetchListings } = useCMSStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [listings, setListings] = useState<any[]>([]);
 
   const currentLang = i18n.language;
 
-  // Fetch listings from Firebase on mount
   useEffect(() => {
     const loadListings = async () => {
       setIsLoading(true);
-      await fetchListings();
+      const allListings = getAllListings();
+      setListings(allListings);
       setIsLoading(false);
     };
     loadListings();
-  }, [fetchListings]);
+  }, []);
 
-  // Get category data
   const category = useMemo(() => {
     return categories.find(c => c.slug === slug);
   }, [slug]);
 
-  // Get listings for this category - use Firebase data if available, fallback to static
-  const listings = useMemo(() => {
+  const categoryListings = useMemo(() => {
     if (!category) return [];
-    const sourceListings = firebaseListings.length > 0 ? firebaseListings : staticListings;
-    return sourceListings.filter(l => l.categoryId === category.id && l.isActive);
-  }, [category, firebaseListings]);
+    return listings.filter(l => l.categoryId === category.id && l.isActive);
+  }, [category, listings]);
 
-  // Filter and sort listings
   const filteredListings = useMemo(() => {
-    let result = [...listings];
+    let result = [...categoryListings];
 
-    // Apply region filter
     if (region) {
       result = result.filter(l => l.region === region);
     }
 
-    // Apply sub-region filter
     if (subRegion) {
       result = result.filter(l => l.subRegion === subRegion);
     }
 
-    // Apply custom filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
         if (key === 'isPublic') {
-          result = result.filter(l => l.metadata.isPublic === (value === 'true'));
+          result = result.filter(l => l.metadata?.isPublic === (value === 'true'));
         } else if (key === 'stars') {
-          result = result.filter(l => l.metadata.stars === parseInt(value));
+          result = result.filter(l => l.metadata?.stars === parseInt(value));
         } else if (key === 'priceRange') {
-          result = result.filter(l => l.metadata.priceRange === value);
+          result = result.filter(l => l.metadata?.priceRange === value);
         } else if (key === 'type') {
-          result = result.filter(l => l.metadata.tags?.includes(value));
+          result = result.filter(l => l.metadata?.tags?.includes(value));
         }
       }
     });
 
-    // Apply sorting
     switch (sortBy) {
       case 'nameAsc':
         result.sort((a, b) => {
@@ -133,19 +124,18 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
         });
         break;
       case 'popular':
-        result.sort((a, b) => b.clickCount - a.clickCount);
+        result.sort((a, b) => (b.clickCount || 0) - (a.clickCount || 0));
         break;
       case 'newest':
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       default:
-        result.sort((a, b) => a.sortOrder - b.sortOrder);
+        result.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     }
 
     return result;
-  }, [listings, region, subRegion, filters, sortBy, currentLang]);
+  }, [categoryListings, region, subRegion, filters, sortBy, currentLang]);
 
-  // Get region name for display
   const regionName = useMemo(() => {
     if (!region) return null;
     const r = regions.find(reg => reg.id === region);
@@ -159,7 +149,6 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
     return sr?.name[currentLang as keyof typeof sr.name] || sr?.name.en;
   }, [region, subRegion, currentLang]);
 
-  // Reset filters when category changes
   useEffect(() => {
     return () => {
       clearFilters();
@@ -185,7 +174,6 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-[#003366] text-white py-12 md:py-16">
         <div className="container mx-auto px-4">
           <Button 
@@ -201,7 +189,6 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
           <h1 className="text-3xl md:text-4xl font-bold mb-3">{categoryName}</h1>
           <p className="text-lg text-white/80 max-w-2xl">{categoryDescription}</p>
           
-          {/* Breadcrumb */}
           <div className="flex items-center gap-2 mt-4 text-sm text-white/60">
             <Link to="/" className="hover:text-white transition-colors">{t('common.home')}</Link>
             <span>/</span>
@@ -210,14 +197,12 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
         </div>
       </div>
 
-      {/* Top Ad Banner */}
       <div className="py-6">
         <div className="container mx-auto px-4">
           <AdBanner position="top" className="mx-auto" />
         </div>
       </div>
 
-      {/* Announcement Banner */}
       <div className="pb-6">
         <div className="container mx-auto px-4">
           <AnnouncementBanner 
@@ -227,17 +212,14 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="pb-6">
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex flex-col lg:flex-row gap-4">
-              {/* Region Filter */}
               <div className="flex-1">
                 <RegionFilter />
               </div>
               
-              {/* Custom Filters */}
               {category.filters.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {category.filters.map((filter) => (
@@ -246,13 +228,11 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
                 </div>
               )}
               
-              {/* Sort */}
               <div className="flex items-center gap-2">
                 <SortDropdown />
               </div>
             </div>
             
-            {/* Active Filters */}
             {(region || subRegion || Object.values(filters).some(Boolean)) && (
               <div className="flex items-center gap-2 mt-4 pt-4 border-t">
                 <FilterIcon className="w-4 h-4 text-gray-400" />
@@ -288,10 +268,8 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
         </div>
       </div>
 
-      {/* Listings Grid */}
       <div className="pb-12">
         <div className="container mx-auto px-4">
-          {/* Results Count */}
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-gray-600">
               {isLoading ? 'Loading...' : `${filteredListings.length} ${t('common.listings')}`}
@@ -326,7 +304,6 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
         </div>
       </div>
 
-      {/* Bottom Ad Banner */}
       <div className="py-6">
         <div className="container mx-auto px-4">
           <AdBanner position="bottom" className="mx-auto" />
