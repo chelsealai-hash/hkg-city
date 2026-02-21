@@ -826,3 +826,17 @@ export const searchListings = (query: string, language: string = 'en'): Listing[
            listing.metadata.tags?.some(tag => tag.toLowerCase().includes(lowerQuery));
   });
 };
+export const subscribeToListingsChanges = (callback: () => void): () => void => {
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === 'cms-listings') {
+      callback();
+    }
+  };
+  
+  window.addEventListener('storage', handleStorage);
+  return () => window.removeEventListener('storage', handleStorage);
+};
+
+export const refreshListings = (): Listing[] => {
+  return getAllListings();
+};
