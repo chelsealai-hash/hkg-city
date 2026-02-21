@@ -11,7 +11,7 @@ import { SortDropdown } from '@/components/filters/SortDropdown';
 import { FilterDropdown } from '@/components/filters/FilterDropdown';
 import { categories, regions } from '@/data/categories';
 import { getAllListings } from '@/data/listings';
-import { useFilterStore } from '@/stores/firebaseStore';
+import { useFilterStore, useCMSStore } from '@/stores/firebaseStore';
 import type { Announcement } from '@/types';
 
 const sampleAnnouncements: Announcement[] = [
@@ -64,13 +64,44 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
 
   const currentLang = i18n.language;
 
+  // 加载 listings - 合并 static + Firebase 数据
   useEffect(() => {
     const loadListings = async () => {
       setIsLoading(true);
-      const allListings = getAllListings();
+      
+      // 1. 获取 static + localStorage 数据
+      let allListings = getAllListings();
+      
+      // 2. 尝试从 Firebase 获取
+      try {
+        const cmsStore = useCMSStore.getState();
+        // 如果 Firebase 有数据，合并进去
+        if (cmsStore.listings && cmsStore.listings.length > 0) {
+          const existingIds = new Set(allListings.map(l => l.id));
+          const firebaseListings = cmsStore.listings.filter(l => 
+            !existingIds.has(l.id) && l.isActive
+          );
+          allListings = [...allListings, ...firebaseListings];
+        } else {
+          // Firebase 没数据，尝试 fetch
+          await cmsStore.fetchListings();
+          const refreshedStore = useCMSStore.getState();
+          if (refreshedStore.listings && refreshedStore.listings.length > 0) {
+            const existingIds = new Set(allListings.map(l => l.id));
+            const firebaseListings = refreshedStore.listings.filter(l => 
+              !existingIds.has(l.id) && l.isActive
+            );
+            allListings = [...allListings, ...firebaseListings];
+          }
+        }
+      } catch (e) {
+        console.log('Firebase not available, using static data only');
+      }
+      
       setListings(allListings);
       setIsLoading(false);
     };
+    
     loadListings();
   }, []);
 
@@ -175,7 +206,7 @@ export function CategoryPage({ slug: propSlug }: CategoryPageProps = {}) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-[#003366] text-white py-12 md:py-16">
-        <div className="container mx-auto px-4">
+        <-4">
           <Button 
             variant="ghost" 
             className="text-white/80 hover:text-white hover:bg-white/10 mb-4"
